@@ -6,12 +6,9 @@ import sitemap from '@astrojs/sitemap';
 
 // https://astro.build/config
 export default defineConfig({
-    output: 'server',
-    site: 'https://fda-news.app',
-
-    adapter: node({
-        mode: 'standalone',
-    }),
+    output: 'static',
+    site: 'https://josealvarezdev.github.io',
+    base: '/FDA_News',
 
     integrations: [sitemap()],
 });
