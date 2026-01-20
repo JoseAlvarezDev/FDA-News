@@ -3,10 +3,9 @@
 ### *Real-Time Regulatory Intelligence for the Modern Bio-Pharma Investor.*
 
 <div align="center">
-  <img src="src/assets/logo.png" alt="FDA Last News Logo" width="120" />
+  <img src="src/assets/logo.png" alt="FDA Last News Logo" width="350" />
 </div>
 
-![FDA Last News Banner](src/assets/og-image.png)
 
 **FDA Last News** is a premium, **fully responsive** data aggregation platform designed to solve the "Information Overload" problem in the biotechnology and pharmaceutical sectors. We transform raw regulatory data from the FDA into actionable market intelligence, optimized for both **Human Search (SEO)** and **AI Context (AI SEO)**.
 
