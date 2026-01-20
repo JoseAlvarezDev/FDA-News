@@ -1,0 +1,456 @@
+---
+import "../styles/global.css";
+import { Share2, Calendar, Pill, Newspaper, Activity } from "@lucide/astro";
+import StockTicker from "../components/StockTicker.astro";
+import { Image } from "astro:assets";
+import logoImage from "../assets/logo.png";
+import ogImage from "../assets/og-image.png";
+
+interface Props {
+    title: string;
+}
+
+const { title } = Astro.props;
+const siteUrl = new URL(
+    Astro.url.pathname,
+    Astro.site || "https://fda-news.app",
+);
+const description =
+    "Real-time FDA regulatory updates, approvals, and market-moving news for Bio-Pharma investors.";
+---
+
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="description" content={description} />
+        <meta name="viewport" content="width=device-width" />
+        <link rel="icon" type="image/png" href="/favicon.png" />
+        <meta name="generator" content={Astro.generator} />
+        <title>{title} | FDA Last News</title>
+
+        <!-- Open Graph / Facebook / WhatsApp -->
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content={siteUrl} />
+        <meta property="og:title" content={`${title} | FDA Last News`} />
+        <meta property="og:description" content={description} />
+        <meta property="og:image" content={ogImage.src} />
+        <meta property="og:site_name" content="FDA Last News" />
+
+        <!-- Twitter / X -->
+        <meta property="twitter:card" content="summary_large_image" />
+        <meta property="twitter:url" content={siteUrl} />
+        <meta property="twitter:title" content={`${title} | FDA Last News`} />
+        <meta property="twitter:description" content={description} />
+        <meta property="twitter:image" content={ogImage.src} />
+
+        <!-- LinkedIn / Professional -->
+        <meta name="author" content="FDA Last News Intelligence" />
+        <meta
+            name="keywords"
+            content="FDA, Biotech, Pharma, Stocks, Investing, PDUFA, Approvals, Recalls, Clinical Trials"
+        />
+
+        <!-- SEO Profesional para IAs y Buscadores -->
+        <meta
+            name="robots"
+            content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"
+        />
+        <meta name="googlebot" content="index, follow" />
+        <link rel="canonical" href={siteUrl} />
+
+        <!-- Datos Estructurados JSON-LD (Para AIs como Perplexity, Gemini, ChatGPT) -->
+        <script
+            type="application/ld+json"
+            is:inline
+            set:html={JSON.stringify({
+                "@context": "https://schema.org",
+                "@type": "Organization",
+                name: "FDA Last News",
+                url: siteUrl,
+                logo: new URL(logoImage.src, siteUrl),
+                description: description,
+                sameAs: [
+                    "https://twitter.com/fdalastnews",
+                    "https://linkedin.com/company/fdalastnews",
+                ],
+            })}
+        />
+        <script
+            type="application/ld+json"
+            is:inline
+            set:html={JSON.stringify({
+                "@context": "https://schema.org",
+                "@type": "WebSite",
+                name: "FDA Last News",
+                url: siteUrl,
+                potentialAction: {
+                    "@type": "SearchAction",
+                    target: `${siteUrl}news?q={search_term_string}`,
+                    "query-input": "required name=search_term_string",
+                },
+            })}
+        />
+    </head>
+    <body class="no-scroll">
+        <!-- Splash Screen -->
+        <div id="splash-screen">
+            <div class="splash-content">
+                <Image
+                    src={logoImage}
+                    alt="FDA News Logo"
+                    class="splash-logo"
+                    width={180}
+                    height={180}
+                    loading="eager"
+                />
+                <h1>FDA<span>News</span></h1>
+            </div>
+        </div>
+
+        <script>
+            // Remove splash screen after load
+            window.addEventListener("load", () => {
+                const splash = document.getElementById("splash-screen");
+                if (splash) {
+                    setTimeout(() => {
+                        splash.classList.add("fade-out");
+                        // Re-enable scrolling after fade out
+                        setTimeout(() => {
+                            splash.style.display = "none";
+                            document.body.classList.remove("no-scroll");
+                        }, 500);
+                    }, 1500); // Show for 1.5s
+                }
+            });
+
+            // Handle Active Navigation Links
+            document.addEventListener("DOMContentLoaded", () => {
+                const currentPath = window.location.pathname;
+                const navLinks = document.querySelectorAll(
+                    ".nav-link, .mobile-nav-link",
+                );
+
+                navLinks.forEach((link) => {
+                    const href = link.getAttribute("href");
+                    if (
+                        href &&
+                        (href === currentPath ||
+                            (href !== "/" && currentPath.startsWith(href)))
+                    ) {
+                        link.classList.add("active");
+                    }
+                });
+            });
+        </script>
+
+        <StockTicker />
+        <div class="app-container">
+            <nav class="sidebar">
+                <div class="logo-area">
+                    <Image
+                        src={logoImage}
+                        alt="FDA News Logo"
+                        class="brand-logo"
+                        width={60}
+                        height={60}
+                        loading="eager"
+                    />
+                    <span class="logo-text"
+                        >FDA<span class="thin">News</span></span
+                    >
+                </div>
+
+                <ul class="nav-links">
+                    <li>
+                        <a href="/" class="nav-link">
+                            <Activity size={20} />
+                            <span>Dashboard</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/approvals" class="nav-link">
+                            <Pill size={20} />
+                            <span>Approvals</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/news" class="nav-link">
+                            <Newspaper size={20} />
+                            <span>News Feed</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/calendar" class="nav-link">
+                            <Calendar size={20} />
+                            <span>Calendar</span>
+                        </a>
+                    </li>
+                </ul>
+
+                <div class="footer-link">
+                    <a href="#" class="nav-link">
+                        <Share2 size={20} />
+                        <span>Share App</span>
+                    </a>
+                </div>
+            </nav>
+
+            <main class="content-area">
+                <slot />
+
+                <footer class="app-footer">
+                    <p>&copy; 2026 FDA News. All rights reserved.</p>
+                </footer>
+            </main>
+
+            <!-- Mobile Bottom Navigation -->
+            <nav class="mobile-nav">
+                <a href="/" class="mobile-nav-link">
+                    <Activity size={24} />
+                    <span>Home</span>
+                </a>
+                <a href="/approvals" class="mobile-nav-link">
+                    <Pill size={24} />
+                    <span>Approvals</span>
+                </a>
+                <a href="/news" class="mobile-nav-link">
+                    <Newspaper size={24} />
+                    <span>News</span>
+                </a>
+                <a href="/calendar" class="mobile-nav-link">
+                    <Calendar size={24} />
+                    <span>Dates</span>
+                </a>
+            </nav>
+        </div>
+    </body>
+</html>
+
+<style>
+    body {
+        transition: opacity 0.3s ease;
+    }
+
+    body.no-scroll {
+        overflow: hidden !important;
+        height: 100vh;
+    }
+
+    /* Splash Screen */
+    #splash-screen {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: #0f172a;
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: opacity 0.5s ease-out;
+    }
+
+    #splash-screen.fade-out {
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    .splash-content {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1rem;
+        animation: pulse-glow 2s infinite;
+    }
+
+    .splash-logo {
+        width: 120px;
+        height: 120px;
+        border-radius: 24px;
+        box-shadow: 0 0 40px var(--color-accent-glow);
+    }
+
+    .splash-content h1 {
+        font-size: 3.5rem;
+        font-weight: 700;
+        color: #fff;
+        margin: 0;
+        letter-spacing: -1px;
+    }
+
+    .splash-content h1 span {
+        font-weight: 300;
+        opacity: 0.8;
+    }
+
+    @keyframes pulse-glow {
+        0% {
+            transform: scale(1);
+            opacity: 1;
+        }
+        50% {
+            transform: scale(1.05);
+            opacity: 0.9;
+        }
+        100% {
+            transform: scale(1);
+            opacity: 1;
+        }
+    }
+
+    /* Footer */
+    .app-footer {
+        margin-top: auto;
+        padding-top: 2rem;
+        padding-bottom: 2rem;
+        border-top: 1px solid var(--glass-border);
+        text-align: center;
+        color: var(--color-text-secondary);
+        font-size: 0.85rem;
+    }
+
+    .app-container {
+        display: flex;
+        min-height: 100vh;
+    }
+
+    /* Sidebar Styles */
+    .sidebar {
+        width: 250px;
+        background: rgba(15, 23, 42, 0.6);
+        backdrop-filter: blur(20px);
+        border-right: 1px solid var(--glass-border);
+        display: flex;
+        flex-direction: column;
+        padding: 2rem;
+        position: fixed;
+        height: 100vh;
+        z-index: 100;
+    }
+
+    .logo-area {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 3rem;
+    }
+
+    .brand-logo {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        box-shadow: 0 0 15px var(--color-accent-glow);
+    }
+
+    .logo-text {
+        font-size: 1.5rem;
+        font-weight: 700;
+        letter-spacing: -0.5px;
+    }
+
+    .logo-text .thin {
+        font-weight: 300;
+        opacity: 0.8;
+    }
+
+    .nav-links {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .nav-link {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 0.8rem 1rem;
+        border-radius: 8px;
+        color: var(--color-text-secondary);
+        transition: all 0.2s ease;
+        font-size: 0.95rem;
+        font-weight: 500;
+    }
+
+    .nav-link:hover {
+        background: rgba(255, 255, 255, 0.05);
+        color: var(--color-text-primary);
+    }
+
+    /* Active state would strictly be handled by Astro.url logic if needed, 
+     but for now we keep it simple or add a class manually in pages */
+
+    .footer-link {
+        margin-top: auto;
+    }
+
+    /* Content Area */
+    .content-area {
+        margin-left: 250px; /* Width of sidebar */
+        flex: 1;
+        padding: 2rem 3rem;
+        display: flex;
+        flex-direction: column;
+    }
+
+    @media (max-width: 768px) {
+        .sidebar {
+            display: none;
+        }
+        .content-area {
+            margin-left: 0;
+            padding: 1.5rem 1rem 5rem 1rem; /* Extra bottom padding for nav */
+        }
+
+        .splash-content h1 {
+            font-size: 2.5rem;
+        }
+
+        .splash-logo {
+            width: 100px;
+            height: 100px;
+        }
+    }
+
+    /* Mobile Bottom Nav Styles */
+    .mobile-nav {
+        display: none;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 70px;
+        background: rgba(15, 23, 42, 0.8);
+        backdrop-filter: blur(20px);
+        border-top: 1px solid var(--glass-border);
+        justify-content: space-around;
+        align-items: center;
+        z-index: 1000;
+        padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    .mobile-nav-link {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.25rem;
+        color: var(--color-text-secondary);
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+
+    .mobile-nav-link:hover,
+    .mobile-nav-link.active {
+        color: var(--color-accent);
+    }
+
+    @media (max-width: 768px) {
+        .mobile-nav {
+            display: flex;
+        }
+    }
+</style>

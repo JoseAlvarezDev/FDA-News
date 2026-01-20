@@ -1,0 +1,23 @@
+# FDA Last News
+
+> Real-time regulatory intelligence and market-moving news for Bio-Pharma investors.
+
+## Overview
+
+FDA Last News is a data-driven dashboard that aggregates critical information from regulatory and financial sources to provide actionable insights into the pharmaceutical industry. It focuses on FDA drug approvals, enforcement actions (recalls), and PDUFA milestones.
+
+## Core Content
+
+- **Dashboard**: Centralized view of recent approvals and market news. [Index](https://fda-news.app/)
+- **Approvals**: Real-time list of newly approved drugs via OpenFDA API. [/approvals](https://fda-news.app/approvals)
+- **News Feed**: Daily updates on FDA enforcement reports and pharmaceutical company news. [/news](https://fda-news.app/news)
+- **FDA Calendar**: Upcoming PDUFA dates and regulatory milestones for 2026. [/calendar](https://fda-news.app/calendar)
+
+## Data Sources
+
+- **OpenFDA API**: Official government source for drug labels, approvals, and enforcement reports.
+- **Finnhub.io**: Real-time stock market data, pharma company thumbnails, and financial news.
+
+## Technical Context
+
+This site is built with **Astro 5.0** (SSR mode), utilizing **Glassmorphism** design principles and clean semantic HTML for optimal readability by both humans and AI agents.

@@ -1,0 +1,225 @@
+---
+import Layout from "../layouts/Layout.astro";
+import GlassCard from "../components/GlassCard.astro";
+import { Calendar as CalendarIcon, Clock, MapPin } from "@lucide/astro";
+
+// Mock data as per plan (No official API for this)
+const events = [
+    {
+        id: 1,
+        title: "PDUFA: Tividenofusp (Denali Therapeutics)",
+        date: "2026-01-05",
+        time: "All Day",
+        type: "PDUFA Decision",
+        description:
+            "BLA decision for Hunter syndrome (MPS II) treatment. Priority Review.",
+        location: "N/A",
+    },
+    {
+        id: 2,
+        title: "PDUFA: Tabelecleucel (Atara Biotherapeutics)",
+        date: "2026-01-10",
+        time: "All Day",
+        type: "PDUFA Decision",
+        description: "BLA decision for Epstein-Barr virus positive PTLD.",
+        location: "N/A",
+    },
+    {
+        id: 3,
+        title: "Oncologic Drugs Advisory Committee (ODAC)",
+        date: "2026-01-23",
+        time: "09:00 AM EST",
+        type: "Advisory Committee",
+        description:
+            "Discussing new drug applications for metastatic breast cancer.",
+        location: "Virtual",
+    },
+    {
+        id: 4,
+        title: "PDUFA: Anaphylm (Aquestive Therapeutics)",
+        date: "2026-01-31",
+        time: "All Day",
+        type: "PDUFA Decision",
+        description:
+            "Decision on Anaphylm (dibutepinephrine) sublingual film for Anaphylaxis.",
+        location: "N/A",
+    },
+    {
+        id: 5,
+        title: "PDUFA: RGX-121 (Regenxbio)",
+        date: "2026-02-08",
+        time: "All Day",
+        type: "PDUFA Decision",
+        description: "Priority review for RGX-121 for the treatment of MPS II.",
+        location: "N/A",
+    },
+    {
+        id: 6,
+        title: "PDUFA: Dupixent (Sanofi/Regeneron)",
+        date: "2026-02-28",
+        time: "All Day",
+        type: "PDUFA Decision",
+        description: "sBLA for Allergic Fungal Rhinosinusitis (AFRS).",
+        location: "N/A",
+    },
+];
+---
+
+<Layout title="Calendar">
+    <div class="page-header">
+        <h1>FDA Calendar</h1>
+        <p class="subtitle">
+            Upcoming Advisory Committee meetings and PDUFA dates.
+        </p>
+    </div>
+
+    <div class="calendar-layout">
+        <!-- Timeline -->
+        <div class="timeline">
+            {
+                events.map((event) => (
+                    <GlassCard className="event-card-large">
+                        <div class="date-column">
+                            <span class="month">
+                                {new Date(event.date).toLocaleString(
+                                    "default",
+                                    { month: "short" },
+                                )}
+                            </span>
+                            <span class="day">
+                                {new Date(event.date).getDate()}
+                            </span>
+                        </div>
+                        <div class="event-details">
+                            <div class="tag-row">
+                                <span
+                                    class={`type-tag ${event.type === "PDUFA Decision" ? "pdufa" : "adcom"}`}
+                                >
+                                    {event.type}
+                                </span>
+                            </div>
+                            <h3>{event.title}</h3>
+                            <p>{event.description}</p>
+
+                            <div class="meta-icons">
+                                <div class="meta">
+                                    <Clock size={16} /> {event.time}
+                                </div>
+                                <div class="meta">
+                                    <MapPin size={16} /> {event.location}
+                                </div>
+                            </div>
+                        </div>
+                    </GlassCard>
+                ))
+            }
+        </div>
+    </div>
+</Layout>
+
+<style>
+    .page-header {
+        margin-bottom: 3rem;
+    }
+
+    h1 {
+        font-size: 2.5rem;
+        margin-bottom: 0.5rem;
+        background: linear-gradient(to right, #fff, #94a3b8);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    .timeline {
+        display: flex;
+        flex-direction: column;
+        gap: 2rem;
+        max-width: 900px;
+    }
+
+    .event-card-large {
+        display: flex;
+        gap: 2rem;
+        align-items: flex-start;
+    }
+
+    .date-column {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        background: rgba(255, 255, 255, 0.05);
+        padding: 1rem;
+        border-radius: 12px;
+        min-width: 80px;
+    }
+
+    .month {
+        text-transform: uppercase;
+        font-size: 0.85rem;
+        letter-spacing: 1px;
+        color: var(--color-text-secondary);
+    }
+
+    .day {
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--color-text-primary);
+    }
+
+    .event-details {
+        flex: 1;
+    }
+
+    .tag-row {
+        margin-bottom: 0.5rem;
+    }
+
+    .type-tag {
+        font-size: 0.7rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        text-transform: uppercase;
+        font-weight: 600;
+    }
+
+    .type-tag.adcom {
+        background: rgba(56, 189, 248, 0.2);
+        color: var(--color-accent);
+    }
+
+    .type-tag.pdufa {
+        background: rgba(245, 158, 11, 0.2);
+        color: var(--color-warning);
+    }
+
+    h3 {
+        margin: 0 0 0.5rem 0;
+        font-size: 1.5rem;
+    }
+
+    p {
+        color: var(--color-text-secondary);
+        margin: 0 0 1rem 0;
+        line-height: 1.5;
+    }
+
+    .meta-icons {
+        display: flex;
+        gap: 1.5rem;
+    }
+
+    .meta {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.9rem;
+        color: var(--color-text-secondary);
+    }
+
+    @media (max-width: 768px) {
+        .event-card-large {
+            flex-direction: column;
+            gap: 1rem;
+        }
+    }
+</style>

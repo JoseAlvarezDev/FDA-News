@@ -1,0 +1,125 @@
+---
+import { getPharmaQuotes } from "../lib/finnhub";
+
+const quotes = await getPharmaQuotes();
+
+// Duplicate for seamless scroll
+const displayQuotes = [...quotes, ...quotes];
+---
+
+{
+    quotes.length > 0 && (
+        <div class="ticker-wrap">
+            <div class="ticker">
+                {displayQuotes.map((quote) => (
+                    <div class="ticker-item">
+                        {quote.logo && (
+                            <img
+                                src={quote.logo}
+                                alt={quote.symbol}
+                                class="ticker-logo"
+                            />
+                        )}
+                        <span class="symbol">{quote.symbol}</span>
+                        <span class="price">${quote.price.toFixed(2)}</span>
+                        <span
+                            class={`change ${quote.change >= 0 ? "positive" : "negative"}`}
+                        >
+                            {quote.change > 0
+                                ? "▲"
+                                : quote.change < 0
+                                  ? "▼"
+                                  : ""}{" "}
+                            {Math.abs(quote.percentChange).toFixed(2)}%
+                        </span>
+                    </div>
+                ))}
+            </div>
+        </div>
+    )
+}
+
+<style>
+    .ticker-wrap {
+        width: 100%;
+        overflow: hidden;
+        background: rgba(15, 23, 42, 0.95);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        height: 40px;
+        display: flex;
+        align-items: center;
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        backdrop-filter: blur(10px);
+    }
+
+    /* Hide scrollbar but keep functionality */
+    .ticker-wrap::-webkit-scrollbar {
+        display: none;
+    }
+
+    .ticker {
+        display: flex;
+        animation: ticker 40s linear infinite;
+        white-space: nowrap;
+        will-change: transform;
+    }
+
+    .ticker-item {
+        display: inline-flex;
+        align-items: center;
+        padding: 0 2rem;
+        font-size: 0.85rem;
+        color: var(--color-text-primary);
+        border-right: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .ticker-logo {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        object-fit: cover;
+        margin-right: 0.75rem;
+        background: #fff;
+        padding: 2px;
+    }
+
+    .symbol {
+        font-weight: 700;
+        margin-right: 0.5rem;
+        color: #e2e8f0;
+    }
+
+    .price {
+        margin-right: 0.5rem;
+        font-variant-numeric: tabular-nums;
+        font-family: monospace;
+    }
+
+    .change {
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .positive {
+        color: #10b981;
+    }
+
+    .negative {
+        color: #ef4444;
+    }
+
+    @keyframes ticker {
+        0% {
+            transform: translate3d(0, 0, 0);
+        }
+        100% {
+            transform: translate3d(-50%, 0, 0);
+        }
+    }
+
+    .ticker-wrap:hover .ticker {
+        animation-play-state: paused;
+    }
+</style>

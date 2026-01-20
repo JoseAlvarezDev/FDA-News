@@ -1,16 +1,657 @@
 ---
+import Layout from "../layouts/Layout.astro";
+import GlassCard from "../components/GlassCard.astro";
+import StockChart from "../components/StockChart.astro";
+import { getRecentApprovals, getLatestNews } from "../lib/fda";
+import {
+	getSymbolForCompany,
+	getStockHistory,
+	getPharmaMarketNews,
+	type ChartPoint,
+} from "../lib/finnhub";
+import { format } from "date-fns";
+import {
+	ArrowRight,
+	Pill,
+	AlertCircle,
+	ExternalLink,
+	TrendingUp,
+} from "@lucide/astro";
+import { Image } from "astro:assets";
+import logoImage from "../assets/logo.png";
 
+const approvals = await getRecentApprovals(6);
+const enforcementNews = await getLatestNews();
+const marketNews = await getPharmaMarketNews();
+
+// Normalize and merge news
+const unitedNews = [
+	...enforcementNews.map((n) => ({
+		title: n.title,
+		link: n.link,
+		date: new Date(
+			n.pubDate
+				? n.pubDate.replace(/(\d{4})(\d{2})(\d{2})/, "$1-$2-$3")
+				: Date.now(),
+		),
+		source: "FDA Enforcement",
+		type: "official",
+	})),
+	...marketNews.map((n) => ({
+		title: n.headline,
+		link: n.url,
+		date: new Date(n.datetime * 1000),
+		source: n.source || "Market News",
+		type: "market",
+	})),
+]
+	.sort((a, b) => b.date.getTime() - a.date.getTime())
+	.slice(0, 10);
+
+const topApproval = approvals[0];
+const recentApprovals = approvals.slice(1);
+
+// Try to get stock data for top approval
+let stockSymbol = null;
+let stockData: ChartPoint[] = [];
+
+if (topApproval && topApproval.sponsor_name) {
+	stockSymbol = await getSymbolForCompany(topApproval.sponsor_name);
+	if (stockSymbol) {
+		stockData = await getStockHistory(stockSymbol);
+	}
+}
+
+function formatDate(dateStr: string) {
+	try {
+		// OpenFDA dates are YYYYMMDD usually
+		if (dateStr.length === 8) {
+			const year = dateStr.substring(0, 4);
+			const month = dateStr.substring(4, 6);
+			const day = dateStr.substring(6, 8);
+			return format(new Date(`${year}-${month}-${day}`), "MMM dd, yyyy");
+		}
+		return format(new Date(dateStr), "MMM dd, yyyy");
+	} catch (e) {
+		return dateStr;
+	}
+}
 ---
 
-<html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<meta name="viewport" content="width=device-width" />
-		<meta name="generator" content={Astro.generator} />
-		<title>Astro</title>
-	</head>
-	<body>
-		<h1>Astro</h1>
-	</body>
-</html>
+<Layout title="Dashboard">
+	<div class="dashboard-grid">
+		<!-- Left Column: Approvals & Hero -->
+		<div class="main-column">
+			<header class="section-header">
+				<div class="title-with-logo">
+					<Image
+						src={logoImage}
+						alt="FDA Logo"
+						class="header-logo"
+						width={40}
+						height={40}
+					/>
+					<h1>Market Intelligence</h1>
+				</div>
+				<p class="subtitle">
+					Real-time FDA regulatory updates for the bio-pharma sector.
+				</p>
+			</header>
+
+			<!-- Hero: Latest Approval -->
+			{
+				topApproval && (
+					<section class="hero-section">
+						<GlassCard className="hero-card">
+							<div class="badge">Just Approved</div>
+
+							<div class="hero-grid">
+								<div class="hero-content">
+									<div class="icon-box">
+										<Pill size={48} />
+									</div>
+									<div class="details">
+										<h2>
+											{topApproval.products[0]
+												?.brand_name ||
+												topApproval.products[0]
+													?.active_ingredients[0]
+													?.name ||
+												"Unknown Drug"}
+										</h2>
+										<p class="sponsor">
+											{topApproval.sponsor_name}
+										</p>
+										<div class="meta">
+											{topApproval.submissions[0]
+												?.submission_status_date && (
+												<span class="date">
+													Decision Date:{" "}
+													{formatDate(
+														topApproval
+															.submissions[0]
+															.submission_status_date,
+													)}
+												</span>
+											)}
+											<span class="type">
+												NDA #
+												{topApproval.application_number}
+											</span>
+										</div>
+									</div>
+								</div>
+
+								{stockSymbol && stockData.length > 0 && (
+									<div class="market-widget">
+										<div class="widget-header">
+											<TrendingUp size={16} /> Market
+											Reaction
+										</div>
+										<StockChart
+											symbol={stockSymbol}
+											data={stockData}
+										/>
+									</div>
+								)}
+							</div>
+						</GlassCard>
+					</section>
+				)
+			}
+
+			<!-- Recent Approvals List -->
+			<section class="approvals-section">
+				<div class="section-title">
+					<h3>Recent Regulatory Decisions</h3>
+					<a href="/approvals" class="view-all"
+						>View All <ArrowRight size={16} /></a
+					>
+				</div>
+
+				<div class="approvals-grid">
+					{
+						recentApprovals.map((app) => (
+							<GlassCard className="approval-compact">
+								<div class="app-header">
+									<span class="drug-name">
+										{app.products[0]?.brand_name ||
+											"Generic"}
+									</span>
+									<span class="drug-date">
+										{app.submissions[0]
+											?.submission_status_date
+											? formatDate(
+													app.submissions[0]
+														.submission_status_date,
+												)
+											: "Recent"}
+									</span>
+								</div>
+								<p class="ingredient">
+									{app.products[0]?.active_ingredients[0]
+										?.name || "Unavailable"}
+								</p>
+								<p class="company">{app.sponsor_name}</p>
+							</GlassCard>
+						))
+					}
+				</div>
+			</section>
+
+			<!-- Calendar Preview (Mock) -->
+			<section class="calendar-section">
+				<div class="section-title">
+					<h3>Upcoming Milestones</h3>
+					<a href="/calendar" class="view-all"
+						>Full Calendar <ArrowRight size={16} /></a
+					>
+				</div>
+				<div class="calendar-preview">
+					<GlassCard className="event-row">
+						<div class="event-date">
+							<span class="day">31</span>
+							<span class="month">JAN</span>
+						</div>
+						<div class="event-info">
+							<h4>PDUFA: Anaphylm (Aquestive)</h4>
+							<p>Decision on sublingual film for Anaphylaxis.</p>
+						</div>
+					</GlassCard>
+					<GlassCard className="event-row">
+						<div class="event-date">
+							<span class="day">08</span>
+							<span class="month">FEB</span>
+						</div>
+						<div class="event-info">
+							<h4>PDUFA: RGX-121 (Regenxbio)</h4>
+							<p>Priority review for MPS II treatment.</p>
+						</div>
+					</GlassCard>
+				</div>
+			</section>
+		</div>
+
+		<!-- Right Column: News Feed -->
+		<aside class="news-column">
+			<GlassCard className="news-feed-card">
+				<div class="news-header">
+					<h3>Latest FDA News</h3>
+					<AlertCircle size={18} class="pulse-icon" />
+				</div>
+				<div class="news-list">
+					{
+						unitedNews.map((item) => (
+							<a
+								href={item.link}
+								target="_blank"
+								rel="noopener noreferrer"
+								class="news-item"
+							>
+								<div class="news-meta-top">
+									<span class={`news-badge ${item.type}`}>
+										{item.source}
+									</span>
+									<span class="news-date">
+										{format(item.date, "MMM dd")}
+									</span>
+								</div>
+								<h4>{item.title}</h4>
+								<ExternalLink size={12} class="external-icon" />
+							</a>
+						))
+					}
+				</div>
+			</GlassCard>
+		</aside>
+	</div>
+</Layout>
+
+<style>
+	.dashboard-grid {
+		display: grid;
+		grid-template-columns: 1fr 350px;
+		gap: 2rem;
+	}
+
+	h1 {
+		font-size: 2.5rem;
+		font-weight: 700;
+		margin: 0 0 0.5rem 0;
+		background: linear-gradient(to right, #fff, #94a3b8);
+		-webkit-background-clip: text;
+		-webkit-text-fill-color: transparent;
+	}
+
+	.subtitle {
+		color: var(--color-text-secondary);
+		font-size: 1.1rem;
+		margin-bottom: 2rem;
+	}
+
+	/* Hero Section */
+	.hero-section {
+		margin-bottom: 3rem;
+	}
+
+	.hero-card {
+		position: relative;
+		background: linear-gradient(
+			135deg,
+			rgba(30, 41, 59, 0.6),
+			rgba(56, 189, 248, 0.1)
+		);
+	}
+
+	.badge {
+		position: absolute;
+		top: 1rem;
+		right: 1rem;
+		background: rgba(16, 185, 129, 0.2);
+		color: var(--color-success);
+		padding: 0.25rem 0.75rem;
+		border-radius: 99px;
+		font-size: 0.75rem;
+		font-weight: 600;
+		border: 1px solid rgba(16, 185, 129, 0.3);
+	}
+
+	.hero-content {
+		display: flex;
+		align-items: center;
+		gap: 1.5rem;
+	}
+
+	.icon-box {
+		width: 80px;
+		height: 80px;
+		background: rgba(255, 255, 255, 0.05);
+		border-radius: 16px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		color: var(--color-accent);
+	}
+
+	.details h2 {
+		margin: 0 0 0.25rem 0;
+		font-size: 1.8rem;
+	}
+
+	.details .sponsor {
+		color: var(--color-text-secondary);
+		margin: 0 0 1rem 0;
+		font-size: 1rem;
+	}
+
+	.meta {
+		display: flex;
+		gap: 1rem;
+		font-size: 0.85rem;
+		color: var(--color-text-secondary);
+	}
+
+	/* Approvals Grid */
+	.section-title {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 1.5rem;
+	}
+
+	.section-title h3 {
+		margin: 0;
+		font-size: 1.25rem;
+	}
+
+	.view-all {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		font-size: 0.9rem;
+		color: var(--color-accent);
+		transition: color 0.2s;
+	}
+
+	.view-all:hover {
+		color: #60a5fa;
+	}
+
+	.approvals-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+		gap: 1rem;
+	}
+
+	.approval-compact {
+		display: flex;
+		flex-direction: column;
+		justify-content: space-between;
+		min-height: 120px;
+	}
+
+	.app-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: flex-start;
+		margin-bottom: 0.5rem;
+	}
+
+	.drug-name {
+		font-weight: 600;
+		color: var(--color-text-primary);
+	}
+
+	.drug-date {
+		font-size: 0.75rem;
+		color: var(--color-text-secondary);
+	}
+
+	.ingredient {
+		font-size: 0.85rem;
+		color: var(--color-text-secondary);
+		margin: 0 0 0.25rem 0;
+	}
+
+	.company {
+		font-size: 0.75rem;
+		color: var(--color-accent);
+		margin: 0;
+	}
+
+	/* Calendar */
+	.calendar-section {
+		margin-top: 3rem;
+	}
+
+	.event-row {
+		display: flex;
+		align-items: center;
+		gap: 1rem;
+		margin-bottom: 1rem;
+		transition: transform 0.2s;
+	}
+
+	.event-row:hover {
+		transform: translateX(4px);
+	}
+
+	.event-date {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		background: rgba(255, 255, 255, 0.05);
+		padding: 0.5rem 1rem;
+		border-radius: 8px;
+		min-width: 60px;
+	}
+
+	.event-date .day {
+		font-size: 1.25rem;
+		font-weight: 700;
+		color: var(--color-text-primary);
+	}
+
+	.event-date .month {
+		font-size: 0.7rem;
+		color: var(--color-text-secondary);
+		letter-spacing: 1px;
+	}
+
+	.event-info h4 {
+		margin: 0 0 0.25rem 0;
+		font-size: 1rem;
+	}
+
+	.event-info p {
+		margin: 0;
+		font-size: 0.85rem;
+		color: var(--color-text-secondary);
+	}
+
+	/* News Column */
+	.news-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		margin-bottom: 1.5rem;
+		border-bottom: 1px solid var(--glass-border);
+		padding-bottom: 1rem;
+	}
+
+	.news-header h3 {
+		margin: 0;
+		font-size: 1.1rem;
+	}
+
+	.pulse-icon {
+		color: var(--color-danger);
+		animation: pulse 2s infinite;
+	}
+
+	@keyframes pulse {
+		0% {
+			opacity: 1;
+		}
+		50% {
+			opacity: 0.5;
+		}
+		100% {
+			opacity: 1;
+		}
+	}
+
+	.news-list {
+		display: flex;
+		flex-direction: column;
+		gap: 1rem;
+	}
+
+	.news-item {
+		display: block;
+		padding: 1rem;
+		border-radius: 8px;
+		background: rgba(255, 255, 255, 0.02);
+		border: 1px solid transparent;
+		transition: all 0.2s;
+		position: relative;
+	}
+
+	.news-item:hover {
+		background: rgba(255, 255, 255, 0.05);
+		border-color: var(--glass-border);
+	}
+
+	.news-item h4 {
+		margin: 0 0 0.5rem 0;
+		font-size: 0.95rem;
+		line-height: 1.4;
+		font-weight: 500;
+	}
+
+	.news-date {
+		margin: 0;
+		font-size: 0.75rem;
+		color: var(--color-text-secondary);
+	}
+
+	.external-icon {
+		position: absolute;
+		top: 1rem;
+		right: 1rem;
+		opacity: 0;
+		transition: opacity 0.2s;
+		color: var(--color-text-secondary);
+	}
+
+	.news-item:hover .external-icon {
+		opacity: 1;
+	}
+
+	.news-meta-top {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 0.5rem;
+	}
+
+	.news-badge {
+		font-size: 0.7rem;
+		padding: 0.1rem 0.4rem;
+		border-radius: 4px;
+		text-transform: uppercase;
+		font-weight: 700;
+	}
+
+	.news-badge.official {
+		background: rgba(239, 68, 68, 0.2);
+		color: #fca5a5;
+	}
+
+	.news-badge.market {
+		background: rgba(56, 189, 248, 0.2);
+		color: #7dd3fc;
+	}
+
+	@media (max-width: 1024px) {
+		.dashboard-grid {
+			grid-template-columns: 1fr;
+		}
+
+		.news-column {
+			margin-top: 2rem;
+		}
+
+		.hero-grid {
+			flex-direction: column;
+		}
+
+		.market-widget {
+			min-width: 100%;
+		}
+	}
+
+	@media (max-width: 640px) {
+		h1 {
+			font-size: 1.8rem;
+		}
+		.hero-content {
+			flex-direction: column;
+			text-align: center;
+		}
+		.icon-box {
+			width: 60px;
+			height: 60px;
+		}
+		.details h2 {
+			font-size: 1.4rem;
+		}
+	}
+
+	.hero-grid {
+		display: flex;
+		align-items: center;
+		gap: 2rem;
+		width: 100%;
+	}
+
+	.hero-content {
+		flex: 1;
+		display: flex;
+		align-items: center;
+		gap: 1.5rem;
+	}
+
+	.market-widget {
+		flex: 1;
+		min-width: 320px;
+		background: rgba(0, 0, 0, 0.2);
+		border: 1px solid rgba(255, 255, 255, 0.05);
+		border-radius: 12px;
+		padding: 1rem;
+	}
+
+	.widget-header {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		color: var(--color-accent);
+		font-weight: 600;
+		font-size: 0.85rem;
+		text-transform: uppercase;
+		margin-bottom: 0.5rem;
+	}
+
+	.title-with-logo {
+		display: flex;
+		align-items: center;
+		gap: 1rem;
+		margin-bottom: 0.5rem;
+	}
+
+	.header-logo {
+		border-radius: 8px;
+		box-shadow: 0 0 10px var(--color-accent-glow);
+	}
+</style>

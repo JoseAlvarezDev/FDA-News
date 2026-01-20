@@ -1,0 +1,165 @@
+---
+import Layout from "../layouts/Layout.astro";
+import GlassCard from "../components/GlassCard.astro";
+import { getRecentApprovals } from "../lib/fda";
+import { format } from "date-fns";
+import { Pill } from "@lucide/astro";
+
+const approvals = await getRecentApprovals(20);
+
+function formatDate(dateStr: string) {
+    try {
+        if (dateStr.length === 8) {
+            const year = dateStr.substring(0, 4);
+            const month = dateStr.substring(4, 6);
+            const day = dateStr.substring(6, 8);
+            return format(new Date(`${year}-${month}-${day}`), "MMM dd, yyyy");
+        }
+        return format(new Date(dateStr), "MMM dd, yyyy");
+    } catch (e) {
+        return dateStr;
+    }
+}
+---
+
+<Layout title="Approvals">
+    <div class="page-header">
+        <h1>Recent FDA Approvals</h1>
+        <p class="subtitle">Latest drug approvals and regulatory decisions</p>
+    </div>
+
+    <div class="approvals-grid-large">
+        {
+            approvals.map((app) => (
+                <GlassCard className="approval-card">
+                    <div class="card-header">
+                        <Pill size={24} class="icon" />
+                        <span class="status-badge">Approved</span>
+                    </div>
+
+                    <h2>{app.products[0]?.brand_name || "Generic Product"}</h2>
+                    <p class="ingredient">
+                        {app.products[0]?.active_ingredients[0]?.name}
+                    </p>
+
+                    <div class="meta-row">
+                        <div class="meta-item">
+                            <span class="label">Sponsor</span>
+                            <span class="value">{app.sponsor_name}</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="label">Decision Date</span>
+                            <span class="value">
+                                {app.submissions[0]?.submission_status_date
+                                    ? formatDate(
+                                          app.submissions[0]
+                                              .submission_status_date,
+                                      )
+                                    : "N/A"}
+                            </span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="label">Application</span>
+                            <span class="value">
+                                NDA #{app.application_number}
+                            </span>
+                        </div>
+                    </div>
+                </GlassCard>
+            ))
+        }
+    </div>
+</Layout>
+
+<style>
+    .page-header {
+        margin-bottom: 3rem;
+    }
+
+    h1 {
+        font-size: 2.5rem;
+        margin-bottom: 0.5rem;
+        background: linear-gradient(to right, #fff, #94a3b8);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    .subtitle {
+        color: var(--color-text-secondary);
+    }
+
+    .approvals-grid-large {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .approval-card {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        transition: transform 0.2s;
+    }
+
+    .approval-card:hover {
+        transform: translateY(-5px);
+    }
+
+    .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .icon {
+        color: var(--color-accent);
+    }
+
+    .status-badge {
+        background: rgba(16, 185, 129, 0.2);
+        color: var(--color-success);
+        font-size: 0.75rem;
+        padding: 0.25rem 0.75rem;
+        border-radius: 99px;
+        font-weight: 600;
+    }
+
+    h2 {
+        margin: 0;
+        font-size: 1.25rem;
+        color: var(--color-text-primary);
+    }
+
+    .ingredient {
+        margin: -0.5rem 0 0.5rem 0;
+        color: var(--color-text-secondary);
+        font-size: 0.9rem;
+    }
+
+    .meta-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1.5rem;
+        margin-top: auto;
+        padding-top: 1rem;
+        border-top: 1px solid var(--glass-border);
+    }
+
+    .meta-item {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .label {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        color: var(--color-text-secondary);
+        letter-spacing: 0.5px;
+    }
+
+    .value {
+        font-size: 0.85rem;
+        font-weight: 500;
+    }
+</style>
