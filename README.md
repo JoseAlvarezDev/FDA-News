@@ -31,6 +31,27 @@ Our tool simplifies the investor's life by:
 -   **📰 Unified News Feed**: Official FDA enforcement reports merged with real-time pharmaceutical financial news.
 -   **📈 Integrated Market Data**: Powered by Finnhub, featuring real-time stock tickers and interactive performance charts for sponsoring companies.
 -   **🤖 AI-Optimized**: Fully optimized for LLMs (ChatGPT, Claude, Perplexity) via `llms.txt` and rich JSON-LD structured data.
+-   **🚀 Live Deployment**: [https://fdanews.web.app](https://fdanews.web.app)
+
+---
+
+## 📸 Visual Showcase
+
+### 🖥️ Decision Intelligence Dashboard
+The central hub for real-time FDA approvals and market sentiment.
+![Dashboard Screenshot](public/screenshots/dashboard.png)
+
+### 💊 Recent Approvals & Regulatory Trace
+Track every drug submission and approval status with deep clinical context.
+![Approvals Screenshot](public/screenshots/approvals.png)
+
+### 📰 Unified Industry News Feed
+A fusion of official FDA enforcement reports and premium financial pharma news.
+![News Feed Screenshot](public/screenshots/news.png)
+
+### 📅 PDUFA & Milestone Calendar
+Stay ahead of market-moving events with our curated PDUFA calendar.
+![Calendar Screenshot](public/screenshots/calendar.png)
 
 ---
 
