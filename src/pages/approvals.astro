@@ -30,7 +30,7 @@ function formatDate(dateStr: string) {
 
     <div class="approvals-grid-large">
         {
-            approvals.map((app) => (
+            approvals.map((app: any) => (
                 <GlassCard className="approval-card">
                     <div class="card-header">
                         <Pill size={24} class="icon" />
@@ -125,15 +125,18 @@ function formatDate(dateStr: string) {
     }
 
     h2 {
-        margin: 0;
-        font-size: 1.25rem;
+        margin: 0.5rem 0 0.25rem 0;
+        font-size: 1.4rem;
+        line-height: 1.2;
         color: var(--color-text-primary);
     }
 
     .ingredient {
-        margin: -0.5rem 0 0.5rem 0;
+        margin: 0 0 1rem 0;
         color: var(--color-text-secondary);
         font-size: 0.9rem;
+        font-weight: 500;
+        letter-spacing: 0.2px;
     }
 
     .meta-row {

@@ -1,9 +1,25 @@
 
 
 
-export const OPENFDA_KEY = import.meta.env.OPENFDA_API_KEY;
+export const OPENFDA_KEY = import.meta.env.OPENFDA_ENFORCEMENT;
 export const OPENFDA_BASE = 'https://api.fda.gov/drug/drugsfda.json';
 export const OPENFDA_ENFORCEMENT = 'https://api.fda.gov/drug/enforcement.json';
+
+// Simple in-memory cache
+const cache = new Map<string, { data: any; timestamp: number }>();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+function getCachedData(key: string) {
+    const cached = cache.get(key);
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+        return cached.data;
+    }
+    return null;
+}
+
+function setCacheData(key: string, data: any) {
+    cache.set(key, { data, timestamp: Date.now() });
+}
 
 function getAuthParam() {
     return OPENFDA_KEY ? `&api_key=${OPENFDA_KEY}` : '';
@@ -23,10 +39,13 @@ interface OpenFDAResult {
     }[];
 }
 
-export async function getRecentApprovals(limit = 5) {
+export async function getRecentApprovals(limit = 20) {
+    const cacheKey = `approvals_${limit}_2026`;
+    const cached = getCachedData(cacheKey);
+    if (cached) return cached;
+
     try {
-        // Query for recent approvals in 2026, sorting by submission status date
-        // Note: Using a date range search to strictly filter for 2026
+        // Query for recent approvals strictly in 2026, sorting by submission status date
         const search = `submissions.submission_status_date:[20260101+TO+20261231]`;
         const url = `${OPENFDA_BASE}?limit=${limit}&sort=submissions.submission_status_date:desc&search=${search}${getAuthParam()}`;
 
@@ -35,7 +54,9 @@ export async function getRecentApprovals(limit = 5) {
 
         if (!data.results) return [];
 
-        return data.results as OpenFDAResult[];
+        const results = data.results as OpenFDAResult[];
+        setCacheData(cacheKey, results);
+        return results;
     } catch (error) {
         console.error('Error fetching approvals:', error);
         return [];
@@ -55,20 +76,32 @@ interface EnforcementResult {
 }
 
 export async function getLatestNews() {
+    const cacheKey = 'latest_news_2026';
+    const cached = getCachedData(cacheKey);
+    if (cached) return cached;
+
     try {
-        // Query for latest enforcement reports (Recalls) sorted by report_date
-        const url = `${OPENFDA_ENFORCEMENT}?limit=10&sort=report_date:desc${getAuthParam()}`;
+        // Query for latest enforcement reports (Recalls) in 2026
+        const search = `report_date:[20260101+TO+20261231]`;
+        const url = `${OPENFDA_ENFORCEMENT}?limit=20&sort=report_date:desc&search=${search}${getAuthParam()}`;
         const res = await fetch(url);
         const data = await res.json();
+
+        if (!data.results) return [];
         const results = data.results as EnforcementResult[];
 
-        // Map to a NewsItem-like structure for the UI
-        return results.map(item => ({
-            title: `Recall: ${item.recalling_firm} - ${item.product_description.substring(0, 60)}...`,
-            link: `https://www.accessdata.fda.gov/scripts/ires/index.cfm`,
-            pubDate: item.report_date, // Format: YYYYMMDD
-            contentSnippet: `Status: ${item.status}. Reason: ${item.reason_for_recall}`
-        }));
+        // Map and ensure strict 2026 data
+        const mappedResults = results
+            .filter(item => item.report_date && item.report_date.startsWith('2026'))
+            .map(item => ({
+                title: `Recall: ${item.recalling_firm} - ${item.product_description.substring(0, 60)}...`,
+                link: `https://www.accessdata.fda.gov/scripts/ires/index.cfm`,
+                pubDate: item.report_date,
+                contentSnippet: `Status: ${item.status}. Reason: ${item.reason_for_recall}`
+            }));
+
+        setCacheData(cacheKey, mappedResults);
+        return mappedResults;
     } catch (error) {
         console.error('Error fetching enforcement news:', error);
         return [];

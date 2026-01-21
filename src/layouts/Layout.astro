@@ -3,6 +3,7 @@ import "../styles/global.css";
 import { Share2, Calendar, Pill, Newspaper, Activity } from "@lucide/astro";
 import StockTicker from "../components/StockTicker.astro";
 import { Image } from "astro:assets";
+import { ClientRouter } from "astro:transitions";
 import logoImage from "../assets/logo.png";
 import ogImage from "../assets/og-image.png";
 
@@ -11,12 +12,16 @@ interface Props {
 }
 
 const { title } = Astro.props;
-const siteUrl = new URL(
-    Astro.url.pathname,
-    Astro.site || "https://fda-news.app",
-);
+const currentPath = Astro.url.pathname;
+const siteUrl = new URL(currentPath, Astro.site || "https://fda-news.app");
 const description =
     "Real-time FDA regulatory updates, approvals, and market-moving news for Bio-Pharma investors.";
+
+const isActive = (path: string) => {
+    if (path === "/" && currentPath === "/") return true;
+    if (path !== "/" && currentPath.startsWith(path)) return true;
+    return false;
+};
 ---
 
 <!doctype html>
@@ -58,6 +63,7 @@ const description =
         />
         <meta name="googlebot" content="index, follow" />
         <link rel="canonical" href={siteUrl} />
+        <ClientRouter />
 
         <!-- Datos Estructurados JSON-LD (Para AIs como Perplexity, Gemini, ChatGPT) -->
         <script
@@ -91,10 +97,32 @@ const description =
                 },
             })}
         />
+        <!-- Google tag (gtag.js) -->
+        <script
+            async
+            src="https://www.googletagmanager.com/gtag/js?id=G-ELKBFH7GYC"
+            is:inline></script>
+        <script is:inline>
+            window.dataLayer = window.dataLayer || [];
+            function gtag() {
+                dataLayer.push(arguments);
+            }
+            gtag("js", new Date());
+            gtag("config", "G-ELKBFH7GYC");
+        </script>
     </head>
     <body class="no-scroll">
-        <!-- Splash Screen -->
-        <div id="splash-screen">
+        <!-- Persistent Splash Screen -->
+        <div id="splash-screen" transition:persist>
+            <script is:inline>
+                // Instant check to avoid flicker
+                if (sessionStorage.getItem("hasSeenSplash")) {
+                    document.write(
+                        "<style>#splash-screen { display: none !important; }</style>",
+                    );
+                    document.body.classList.remove("no-scroll");
+                }
+            </script>
             <div class="splash-content">
                 <Image
                     src={logoImage}
@@ -109,20 +137,88 @@ const description =
         </div>
 
         <script>
-            // Remove splash screen after load
-            window.addEventListener("load", () => {
+            // Optimized Splash Screen Logic
+            document.addEventListener("astro:page-load", () => {
                 const splash = document.getElementById("splash-screen");
+                const hasSeenSplash = sessionStorage.getItem("hasSeenSplash");
+
+                if (hasSeenSplash && splash) {
+                    splash.style.display = "none";
+                    document.body.classList.remove("no-scroll");
+                    return;
+                }
+
                 if (splash) {
                     setTimeout(() => {
                         splash.classList.add("fade-out");
-                        // Re-enable scrolling after fade out
                         setTimeout(() => {
                             splash.style.display = "none";
                             document.body.classList.remove("no-scroll");
+                            sessionStorage.setItem("hasSeenSplash", "true");
                         }, 500);
-                    }, 1500); // Show for 1.5s
+                    }, 1000);
                 }
             });
+
+            // Anti-Tamper Protection
+            document.addEventListener("contextmenu", (e) => e.preventDefault());
+            document.addEventListener("keydown", (e) => {
+                // Block F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+Shift+C, Ctrl+U (view source)
+                if (
+                    e.key === "F12" ||
+                    (e.ctrlKey &&
+                        e.shiftKey &&
+                        (e.key === "I" || e.key === "J" || e.key === "C")) ||
+                    (e.metaKey && e.altKey && e.key === "i") || // Mac shortcuts
+                    (e.ctrlKey && e.key === "u") ||
+                    (e.metaKey && e.key === "u")
+                ) {
+                    e.preventDefault();
+                    return false;
+                }
+            });
+
+            // Prevent text selection to avoid scraping/cloning feel
+            document.addEventListener("selectstart", (e) => e.preventDefault());
+
+            // Basic Debugger Trap
+            // setInterval(() => { debugger; }, 1000);
+
+            // Share API Implementation
+            const shareBtn = document.getElementById("share-btn");
+            const shareToast = document.getElementById("share-toast");
+
+            if (shareBtn) {
+                shareBtn.addEventListener("click", async () => {
+                    const shareData = {
+                        title: "FDA Last News",
+                        text: "Real-time FDA regulatory updates and market intelligence.",
+                        url: window.location.href,
+                    };
+
+                    try {
+                        if (navigator.share) {
+                            await navigator.share(shareData);
+                        } else {
+                            await navigator.clipboard.writeText(
+                                window.location.href,
+                            );
+                            showToast();
+                        }
+                    } catch (err) {
+                        console.error("Error sharing:", err);
+                    }
+                });
+            }
+
+            function showToast() {
+                if (shareToast) {
+                    shareToast.classList.add("show");
+                    setTimeout(() => {
+                        shareToast.classList.remove("show");
+                    }, 3000);
+                }
+            }
 
             // Handle Active Navigation Links
             document.addEventListener("DOMContentLoaded", () => {
@@ -163,25 +259,37 @@ const description =
 
                 <ul class="nav-links">
                     <li>
-                        <a href="/" class="nav-link">
+                        <a
+                            href="/"
+                            class={`nav-link ${isActive("/") ? "active" : ""}`}
+                        >
                             <Activity size={20} />
                             <span>Dashboard</span>
                         </a>
                     </li>
                     <li>
-                        <a href="/approvals" class="nav-link">
+                        <a
+                            href="/approvals"
+                            class={`nav-link ${isActive("/approvals") ? "active" : ""}`}
+                        >
                             <Pill size={20} />
                             <span>Approvals</span>
                         </a>
                     </li>
                     <li>
-                        <a href="/news" class="nav-link">
+                        <a
+                            href="/news"
+                            class={`nav-link ${isActive("/news") ? "active" : ""}`}
+                        >
                             <Newspaper size={20} />
                             <span>News Feed</span>
                         </a>
                     </li>
                     <li>
-                        <a href="/calendar" class="nav-link">
+                        <a
+                            href="/calendar"
+                            class={`nav-link ${isActive("/calendar") ? "active" : ""}`}
+                        >
                             <Calendar size={20} />
                             <span>Calendar</span>
                         </a>
@@ -189,10 +297,18 @@ const description =
                 </ul>
 
                 <div class="footer-link">
-                    <a href="#" class="nav-link">
+                    <button
+                        id="share-btn"
+                        class="nav-link share-button-trigger"
+                    >
                         <Share2 size={20} />
                         <span>Share App</span>
-                    </a>
+                    </button>
+                </div>
+
+                <!-- Toast Notification -->
+                <div id="share-toast" class="toast">
+                    Link copied to clipboard!
                 </div>
             </nav>
 
@@ -206,19 +322,31 @@ const description =
 
             <!-- Mobile Bottom Navigation -->
             <nav class="mobile-nav">
-                <a href="/" class="mobile-nav-link">
+                <a
+                    href="/"
+                    class={`mobile-nav-link ${isActive("/") ? "active" : ""}`}
+                >
                     <Activity size={24} />
                     <span>Home</span>
                 </a>
-                <a href="/approvals" class="mobile-nav-link">
+                <a
+                    href="/approvals"
+                    class={`mobile-nav-link ${isActive("/approvals") ? "active" : ""}`}
+                >
                     <Pill size={24} />
                     <span>Approvals</span>
                 </a>
-                <a href="/news" class="mobile-nav-link">
+                <a
+                    href="/news"
+                    class={`mobile-nav-link ${isActive("/news") ? "active" : ""}`}
+                >
                     <Newspaper size={24} />
                     <span>News</span>
                 </a>
-                <a href="/calendar" class="mobile-nav-link">
+                <a
+                    href="/calendar"
+                    class={`mobile-nav-link ${isActive("/calendar") ? "active" : ""}`}
+                >
                     <Calendar size={24} />
                     <span>Dates</span>
                 </a>
@@ -311,6 +439,16 @@ const description =
         font-size: 0.85rem;
     }
 
+    .ticker-fallback {
+        height: 40px;
+        background: rgba(15, 23, 42, 0.95);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        width: 100%;
+        position: sticky;
+        top: 0;
+        z-index: 50;
+    }
+
     .app-container {
         display: flex;
         min-height: 100vh;
@@ -376,13 +514,25 @@ const description =
         font-weight: 500;
     }
 
-    .nav-link:hover {
+    .nav-link:hover,
+    .nav-link.active {
         background: rgba(255, 255, 255, 0.05);
-        color: var(--color-text-primary);
+        color: var(--color-accent);
     }
 
-    /* Active state would strictly be handled by Astro.url logic if needed, 
-     but for now we keep it simple or add a class manually in pages */
+    .nav-link.active {
+        background: linear-gradient(
+            to right,
+            rgba(56, 189, 248, 0.1),
+            transparent
+        );
+        border-left: 2px solid var(--color-accent);
+        padding-left: calc(1rem - 2px);
+    }
+
+    .nav-link.active span {
+        font-weight: 600;
+    }
 
     .footer-link {
         margin-top: auto;
@@ -452,5 +602,50 @@ const description =
         .mobile-nav {
             display: flex;
         }
+    }
+    /* Toast Notification */
+    .toast {
+        position: fixed;
+        bottom: 30px;
+        left: 50%;
+        transform: translateX(-50%) translateY(100px);
+        background: rgba(15, 23, 42, 0.9);
+        backdrop-filter: blur(10px);
+        border: 1px solid var(--color-accent);
+        color: white;
+        padding: 12px 24px;
+        border-radius: 12px;
+        font-size: 0.9rem;
+        font-weight: 500;
+        z-index: 2000;
+        transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    }
+
+    .toast.show {
+        transform: translateX(-50%) translateY(0);
+    }
+
+    .share-button-trigger {
+        background: none;
+        border: none;
+        width: 100%;
+        cursor: pointer;
+        text-align: left;
+        font-family: inherit;
+    }
+
+    @media (max-width: 768px) {
+        .toast {
+            bottom: 85px; /* Above mobile nav */
+        }
+    }
+
+    .mobile-nav-link.active {
+        color: var(--color-accent);
+    }
+
+    .mobile-nav-link.active span {
+        font-weight: 600;
     }
 </style>

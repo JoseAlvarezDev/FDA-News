@@ -1,6 +1,22 @@
 export const FINNHUB_KEY = import.meta.env.FINNHUB_API_KEY;
 const BASE_URL = 'https://finnhub.io/api/v1';
 
+// Simple in-memory cache
+const cache = new Map<string, { data: any; timestamp: number }>();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+function getCachedData(key: string) {
+    const cached = cache.get(key);
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+        return cached.data;
+    }
+    return null;
+}
+
+function setCacheData(key: string, data: any) {
+    cache.set(key, { data, timestamp: Date.now() });
+}
+
 interface CandleData {
     c: number[]; // close
     h: number[]; // high
@@ -19,6 +35,10 @@ export interface ChartPoint {
 }
 
 export async function getSymbolForCompany(companyName: string): Promise<string | null> {
+    const cacheKey = `symbol_${companyName}`;
+    const cached = getCachedData(cacheKey);
+    if (cached !== null) return cached;
+
     // Manual overrides for common massive pharma to ensure accuracy
     const overrides: Record<string, string> = {
         'NOVO NORDISK': 'NVO',
@@ -39,7 +59,10 @@ export async function getSymbolForCompany(companyName: string): Promise<string |
 
     const upper = companyName.toUpperCase();
     for (const [key, val] of Object.entries(overrides)) {
-        if (upper.includes(key)) return val;
+        if (upper.includes(key)) {
+            setCacheData(cacheKey, val);
+            return val;
+        }
     }
 
     // Fallback to API search if no override
@@ -51,11 +74,13 @@ export async function getSymbolForCompany(companyName: string): Promise<string |
         if (data.result && data.result.length > 0) {
             // Prefer US listings
             const best = data.result.find((r: any) => !r.symbol.includes('.')) || data.result[0];
+            setCacheData(cacheKey, best.symbol);
             return best.symbol;
         }
     } catch (e) {
         console.error('Error searching symbol:', e);
     }
+    setCacheData(cacheKey, null);
     return null;
 }
 
@@ -149,14 +174,20 @@ export async function getCompanyProfile(symbol: string): Promise<{ logo?: string
 }
 
 export async function getPharmaQuotes(): Promise<Quote[]> {
+    const cacheKey = 'pharma_quotes_2026';
+    const cached = getCachedData(cacheKey);
+    if (cached) return cached;
+
     // Fetch quotes and profiles in parallel for all symbols
-    // Note: This makes 2 requests per symbol. Be mindful of rate limits.
     const promises = PHARMA_SYMBOLS.map(async (sym) => {
-        const quote = await getQuote(sym);
+        // Internal parallelization for symbol details
+        const [quote, profile] = await Promise.all([
+            getQuote(sym),
+            getCompanyProfile(sym)
+        ]);
+
         if (!quote) return null;
 
-        // Fetch logo via profile
-        const profile = await getCompanyProfile(sym);
         if (profile) {
             quote.logo = profile.logo;
             quote.name = profile.name;
@@ -165,7 +196,9 @@ export async function getPharmaQuotes(): Promise<Quote[]> {
     });
 
     const results = await Promise.all(promises);
-    return results.filter((q): q is Quote => q !== null);
+    const filtered = results.filter((q): q is Quote => q !== null);
+    setCacheData(cacheKey, filtered);
+    return filtered;
 }
 
 export interface CompanyNews {
@@ -197,20 +230,31 @@ export async function getCompanyNews(symbol: string): Promise<CompanyNews[]> {
 }
 
 export async function getPharmaMarketNews(): Promise<CompanyNews[]> {
-    // Fetch news for a subset of major movers to avoid rate limits (top 3 + usually active ones)
+    const cacheKey = 'pharma_market_news_2026';
+    const cached = getCachedData(cacheKey);
+    if (cached) return cached;
+
+    // Fetch news for a subset of major movers to avoid rate limits
     const keySyms = ['LLY', 'NVO', 'PFE', 'MRK', 'VRTX'];
 
     const promises = keySyms.map(sym => getCompanyNews(sym));
     const results = await Promise.all(promises);
 
-    // Flatten and sort by date desc
     const allNews = results.flat();
 
-    // Filter for FDA related keywords to ensure relevance
-    const fdaNews = allNews.filter(item => {
+    // Year 2026 range in Unix seconds
+    const start2026 = 1735689600; // 2026-01-01 00:00:00
+    const end2026 = 1767139199;   // 2026-12-31 23:59:59
+
+    const filteredNews = allNews.filter(item => {
+        const is2026 = item.datetime >= start2026 && item.datetime <= end2026;
+        if (!is2026) return false;
+
         const text = (item.headline + ' ' + item.summary).toUpperCase();
         return text.includes('FDA') || text.includes('APPROVAL') || text.includes('REJECT') || text.includes('CLINICAL');
     });
 
-    return fdaNews.sort((a, b) => b.datetime - a.datetime).slice(0, 15);
+    const finalNews = filteredNews.sort((a, b) => b.datetime - a.datetime).slice(0, 15);
+    setCacheData(cacheKey, finalNews);
+    return finalNews;
 }

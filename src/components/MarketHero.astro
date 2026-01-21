@@ -1,0 +1,208 @@
+---
+import GlassCard from "./GlassCard.astro";
+import StockChart from "./StockChart.astro";
+import { Pill, TrendingUp } from "@lucide/astro";
+import { format } from "date-fns";
+import {
+    getSymbolForCompany,
+    getStockHistory,
+    type ChartPoint,
+} from "../lib/finnhub";
+
+interface Props {
+    topApproval: any;
+}
+
+const { topApproval } = Astro.props;
+
+// Try to get stock data for top approval
+let stockSymbol = null;
+let stockData: ChartPoint[] = [];
+
+if (topApproval && topApproval.sponsor_name) {
+    stockSymbol = await getSymbolForCompany(topApproval.sponsor_name);
+    if (stockSymbol) {
+        stockData = await getStockHistory(stockSymbol);
+    }
+}
+
+function formatDate(dateStr: string) {
+    try {
+        if (!dateStr) return "";
+        if (dateStr.length === 8) {
+            const year = dateStr.substring(0, 4);
+            const month = dateStr.substring(4, 6);
+            const day = dateStr.substring(6, 8);
+            return format(new Date(`${year}-${month}-${day}`), "MMM dd, yyyy");
+        }
+        return format(new Date(dateStr), "MMM dd, yyyy");
+    } catch (e) {
+        return dateStr;
+    }
+}
+---
+
+<GlassCard className="hero-card">
+    <div class="badge">Just Approved</div>
+
+    <div class="hero-grid">
+        <div class="hero-content">
+            <div class="icon-box">
+                <Pill size={48} />
+            </div>
+            <div class="details">
+                <h2>
+                    {
+                        topApproval.products[0]?.brand_name ||
+                            topApproval.products[0]?.active_ingredients[0]
+                                ?.name ||
+                            "Unknown Drug"
+                    }
+                </h2>
+                <p class="sponsor">
+                    {topApproval.sponsor_name}
+                </p>
+                <div class="meta">
+                    {
+                        topApproval.submissions[0]?.submission_status_date && (
+                            <span class="date">
+                                Decision Date:{" "}
+                                {formatDate(
+                                    topApproval.submissions[0]
+                                        .submission_status_date,
+                                )}
+                            </span>
+                        )
+                    }
+                    <span class="type">
+                        NDA #
+                        {topApproval.application_number}
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        {
+            stockSymbol && stockData.length > 0 && (
+                <div class="market-widget">
+                    <div class="widget-header">
+                        <TrendingUp size={16} /> Market Reaction
+                    </div>
+                    <StockChart symbol={stockSymbol} data={stockData} />
+                </div>
+            )
+        }
+    </div>
+</GlassCard>
+
+<style>
+    /* Hero Section */
+    .hero-card {
+        position: relative;
+        background: linear-gradient(
+            135deg,
+            rgba(30, 41, 59, 0.6),
+            rgba(56, 189, 248, 0.1)
+        );
+    }
+
+    .badge {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        background: rgba(16, 185, 129, 0.2);
+        color: var(--color-success);
+        padding: 0.25rem 0.75rem;
+        border-radius: 99px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .hero-content {
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+    }
+
+    .icon-box {
+        width: 80px;
+        height: 80px;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--color-accent);
+    }
+
+    .details h2 {
+        margin: 0 0 0.25rem 0;
+        font-size: 1.8rem;
+        color: white;
+    }
+
+    .details .sponsor {
+        color: var(--color-text-secondary);
+        margin: 0 0 1rem 0;
+        font-size: 1rem;
+    }
+
+    .meta {
+        display: flex;
+        gap: 1rem;
+        font-size: 0.85rem;
+        color: var(--color-text-secondary);
+    }
+
+    .hero-grid {
+        display: flex;
+        align-items: center;
+        gap: 2rem;
+        width: 100%;
+    }
+
+    .market-widget {
+        flex: 1;
+        min-width: 320px;
+        background: rgba(0, 0, 0, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 12px;
+        padding: 1rem;
+    }
+
+    .widget-header {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: var(--color-accent);
+        font-weight: 600;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        margin-bottom: 0.5rem;
+    }
+
+    @media (max-width: 1024px) {
+        .hero-grid {
+            flex-direction: column;
+        }
+
+        .market-widget {
+            min-width: 100%;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .hero-content {
+            flex-direction: column;
+            text-align: center;
+        }
+        .icon-box {
+            width: 60px;
+            height: 60px;
+        }
+        .details h2 {
+            font-size: 1.4rem;
+        }
+    }
+</style>

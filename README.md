@@ -46,27 +46,19 @@ Our tool simplifies the investor's life by:
 
 ---
 
-## ⚙️ Configuration
+## 🔒 Proprietary Protection & Security
 
-To run this platform locally or in production, you'll need the following environment variables in your `.env` file:
+This platform is a **private, proprietary tool**. We have implemented several layers of security to ensure the integrity of the data and the user experience:
 
-```env
-FINNHUB_API_KEY=your_finnhub_key_here
-OPENFDA_API_KEY=your_openfda_key_here (optional, but recommended for high traffic)
-```
-
-### Getting Started
-
-1.  **Install dependencies**: `npm install`
-2.  **Run dev server**: `npm run dev`
-3.  **Build for production**: `npm run build`
+-   **Zero Client-Side Leaks**: All API keys are handled server-side via Astro's SSR.
+-   **Anti-Tamper Intelligence**: The frontend includes protection against unauthorized inspection (DevTools blocking) and content manipulation to preserve the premium immersion.
+-   **Optimized Indexing**: Professional search visibility via `sitemap.xml`, `robots.txt`, and rich structured data.
 
 ---
 
-## 🔒 Security & Performance
+## ⚙️ Project Status
 
--   **Zero Client-Side Leaks**: All API keys are handled server-side via Astro's SSR.
--   **Optimized Indexing**: Includes 1200x630 OG Banner, `sitemap.xml`, and `robots.txt` for professional search visibility.
+This repository is for **internal demonstration and private deployment only**. Unauthorized cloning, modification, or redistribution of the source code is strictly prohibited.
 
 ---
 *Created for Jose Alvarez Dev with intensity for the next generation of biotech intelligence.*
